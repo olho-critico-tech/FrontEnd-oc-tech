@@ -11,6 +11,9 @@ export default defineConfig(() => ({
       overlay: false,
     },
   },
+  preview: {
+    allowedHosts: ["oc-tech.onrender.com"],
+  },
   plugins: [react()],
   resolve: {
     alias: {
@@ -18,3 +21,4 @@ export default defineConfig(() => ({
     },
   },
 }));
+
