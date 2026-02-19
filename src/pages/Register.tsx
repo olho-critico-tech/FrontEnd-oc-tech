@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { registerWithEmail, registerWithGoogle } from "@/lib/authService";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -23,8 +23,8 @@ const Register = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const acceptTerms = true;
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,19 +34,26 @@ const Register = () => {
     }
     setLoading(true);
     try {
-      await api.post("/auth/register", {
-        nome: name,
-        email,
-        senha: password,
-        phone,
-        aceitarTermos: acceptTerms,
-      });
-      toast.success("Conta criada! Verifique o seu e-mail para ativacao.");
+      await registerWithEmail({ name, email, password });
+      toast.success("Conta criada! Enviamos um email de verificacao. Verifique a caixa de entrada e o spam.");
       navigate("/auth/activate");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao criar conta.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setGoogleLoading(true);
+    try {
+      const user = await registerWithGoogle();
+      toast.success(`Conta de ${user.email ?? "utilizador"} criada com sucesso!`);
+      navigate("/analisar");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar conta com Google.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -68,6 +75,46 @@ const Register = () => {
               <UserPlus className="h-10 w-10 text-primary mx-auto mb-3" />
               <h1 className="text-2xl font-bold">Criar Conta</h1>
               <p className="text-muted-foreground text-sm mt-1">Junte-se ao OC Tech e comece a analisar</p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={googleLoading}
+                onClick={handleGoogleRegister}
+                className="w-full h-11"
+              >
+                {googleLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                    >
+                      <path
+                        fill="#EA4335"
+                        d="M12 10.2v3.9h5.5c-.2 1.4-1.6 4.2-5.5 4.2-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 3.7 14.7 2.7 12 2.7 6.9 2.7 2.8 6.8 2.8 11.9s4.1 9.2 9.2 9.2c5.3 0 8.8-3.7 8.8-9 0-.6-.1-1.1-.2-1.6H12z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M3.9 7.2l3.2 2.3c.9-2.1 3-3.5 4.9-3.5 1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 3.7 14.7 2.7 12 2.7c-3.6 0-6.8 2.1-8.1 4.5z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M12 21.1c2.5 0 4.6-.8 6.1-2.2l-2.8-2.3c-.8.5-1.8.9-3.3.9-2.5 0-4.6-1.7-5.4-4l-3.2 2.4c1.3 2.5 4.3 5.2 8.6 5.2z"
+                      />
+                      <path
+                        fill="#4285F4"
+                        d="M20.6 12.1c0-.6-.1-1.1-.2-1.6H12v3.9h5.5c-.3 1.5-1.5 2.8-3.1 3.5l2.8 2.3c1.6-1.5 3.4-3.8 3.4-8.1z"
+                      />
+                    </svg>
+                    Criar conta com Google
+                  </span>
+                )}
+              </Button>
             </div>
 
             <form onSubmit={handleRegister} className="space-y-4">
@@ -291,5 +338,3 @@ const Register = () => {
 };
 
 export default Register;
-
-

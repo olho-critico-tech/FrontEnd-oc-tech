@@ -1,16 +1,16 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Eye, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { api, ApiError } from "@/lib/api";
+import { confirmReset, verifyResetCode } from "@/lib/authService";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  const code = searchParams.get("oobCode") ?? searchParams.get("token");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,28 +21,24 @@ const ResetPassword = () => {
     let isActive = true;
 
     const validateToken = async () => {
-      if (!token) {
+      if (!code) {
         if (!isActive) return;
         setTokenStatus("invalid");
-        setTokenError("Token nao encontrado.");
+        setTokenError("Link nao encontrado.");
         return;
       }
 
       try {
-        await api.get(`/auth/reset?token=${encodeURIComponent(token)}`);
+        await verifyResetCode(code);
         if (!isActive) return;
         setTokenStatus("valid");
         setTokenError(null);
       } catch (err) {
         if (!isActive) return;
-        let message = "Token invalido.";
-        if (err instanceof ApiError) {
-          if (err.status === 410) message = "Token expirado.";
-          if (err.status === 404) message = "Token nao encontrado.";
-          if (err.status === 400) message = "Token invalido.";
-        }
         setTokenStatus("invalid");
-        setTokenError(message);
+        setTokenError(
+          err instanceof Error ? err.message : "Link invalido ou expirado.",
+        );
       }
     };
 
@@ -51,16 +47,16 @@ const ResetPassword = () => {
     return () => {
       isActive = false;
     };
-  }, [token]);
+  }, [code]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      toast.error("Token nao encontrado.");
+    if (!code) {
+      toast.error("Link nao encontrado.");
       return;
     }
     if (tokenStatus !== "valid") {
-      toast.error(tokenError || "Token invalido.");
+      toast.error(tokenError || "Link invalido.");
       return;
     }
     if (password !== confirmPassword) {
@@ -70,7 +66,7 @@ const ResetPassword = () => {
 
     setLoading(true);
     try {
-      await api.post("/auth/reset", { token, novaSenha: password });
+      await confirmReset(code, password);
       toast.success("Senha redefinida com sucesso.");
       navigate("/login");
     } catch (err) {
@@ -103,11 +99,11 @@ const ResetPassword = () => {
             {tokenStatus === "checking" ? (
               <div className="flex flex-col items-center gap-4 py-6">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">A validar token...</p>
+                <p className="text-sm text-muted-foreground">A validar link...</p>
               </div>
             ) : tokenStatus === "invalid" ? (
               <div className="text-center space-y-4">
-                <p className="text-sm text-muted-foreground">{tokenError || "Token invalido."}</p>
+                <p className="text-sm text-muted-foreground">{tokenError || "Link invalido."}</p>
                 <Button variant="outline" onClick={() => navigate("/esqueci-senha")} className="border-border">
                   Pedir novo link
                 </Button>

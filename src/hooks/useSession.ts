@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchSession, requestLogout, type SessionInfo } from "@/lib/auth";
+import { fetchSession, type SessionInfo } from "@/lib/auth";
+import { logoutAll } from "@/lib/authService";
 
 export type SessionState = {
   session: SessionInfo | null;
@@ -21,7 +22,7 @@ export const useSession = (): SessionState => {
   }, []);
 
   const logout = useCallback(async () => {
-    await requestLogout();
+    await logoutAll();
     setSession(null);
   }, []);
 

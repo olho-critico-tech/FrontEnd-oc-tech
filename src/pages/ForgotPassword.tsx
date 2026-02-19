@@ -1,11 +1,11 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Eye, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { requestPasswordReset } from "@/lib/authService";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -19,7 +19,7 @@ const ForgotPassword = () => {
     if (!email) return;
     setLoading(true);
     try {
-      await api.post("/auth/forgot", { email });
+      await requestPasswordReset(email);
       setSent(true);
       toast.success(genericMessage);
     } catch (err) {

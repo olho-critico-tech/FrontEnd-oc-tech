@@ -1,4 +1,6 @@
-﻿const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+import { auth } from "@/lib/firebase";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 type ApiErrorPayload = {
   message?: string;
@@ -20,6 +22,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
+  }
+  if (!headers.has("Authorization") && auth.currentUser) {
+    const idToken = await auth.currentUser.getIdToken();
+    headers.set("Authorization", `Bearer ${idToken}`);
   }
 
   const response = await fetch(`${API_URL}${path}`, {
@@ -85,4 +91,3 @@ export async function downloadWithCredentials(path: string, filename: string) {
   anchor.click();
   URL.revokeObjectURL(url);
 }
-

@@ -1,23 +1,24 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { applyEmailVerification } from "@/lib/authService";
 
 const ActivateAccount = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  const mode = searchParams.get("mode");
+  const code = searchParams.get("oobCode");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
-    if (!token) return;
+    if (mode !== "verifyEmail" || !code) return;
 
     const activate = async () => {
       setStatus("loading");
       try {
-        await api.get(`/auth/activate?token=${encodeURIComponent(token)}`);
+        await applyEmailVerification(code);
         setStatus("success");
         setTimeout(() => {
           navigate("/login");
@@ -29,9 +30,9 @@ const ActivateAccount = () => {
     };
 
     activate();
-  }, [token, navigate]);
+  }, [code, mode, navigate]);
 
-  const showActions = !token || status === "error";
+  const showActions = status === "error" || status === "idle";
 
   return (
     <div className="dark min-h-screen bg-background text-foreground flex flex-col">
@@ -49,7 +50,7 @@ const ActivateAccount = () => {
           <div className="rounded-xl border border-border bg-card p-8 card-glow text-center">
             <MailCheck className="h-14 w-14 text-primary mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Ativacao de Conta</h1>
-            {!token ? (
+            {mode !== "verifyEmail" || !code ? (
               <p className="text-muted-foreground text-sm mb-6">Verifique o link enviado no seu email</p>
             ) : status === "loading" ? (
               <p className="text-muted-foreground text-sm mb-6">A ativar a sua conta...</p>
@@ -79,4 +80,3 @@ const ActivateAccount = () => {
 };
 
 export default ActivateAccount;
-
