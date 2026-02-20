@@ -1,4 +1,5 @@
-﻿import { api, ApiError } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { clearStoredToken } from "@/lib/token";
 
 type Usuario = {
   id: string;
@@ -44,6 +45,5 @@ export async function fetchSession(): Promise<SessionInfo | null> {
 }
 
 export async function requestLogout(): Promise<void> {
-  await api.post<void>("/auth/logout");
+  clearStoredToken();
 }
-

@@ -1,4 +1,5 @@
 import { auth } from "@/lib/firebase";
+import { getStoredToken } from "@/lib/token";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -23,15 +24,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
   }
-  if (!headers.has("Authorization") && auth.currentUser) {
-    const idToken = await auth.currentUser.getIdToken();
-    headers.set("Authorization", `Bearer ${idToken}`);
+  if (!headers.has("Authorization")) {
+    const storedToken = getStoredToken();
+    if (storedToken) {
+      headers.set("Authorization", `Bearer ${storedToken}`);
+    } else if (auth.currentUser) {
+      const idToken = await auth.currentUser.getIdToken();
+      headers.set("Authorization", `Bearer ${idToken}`);
+    }
   }
 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
-    credentials: "include",
   });
 
   const contentType = response.headers.get("content-type") || "";
@@ -73,9 +78,15 @@ export const api = {
 };
 
 export async function downloadWithCredentials(path: string, filename: string) {
+  const headers = new Headers();
+  const storedToken = getStoredToken();
+  if (storedToken) {
+    headers.set("Authorization", `Bearer ${storedToken}`);
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     method: "GET",
-    credentials: "include",
+    headers,
   });
 
   if (!response.ok) {

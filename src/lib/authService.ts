@@ -14,11 +14,19 @@ import {
 } from "firebase/auth";
 import { auth } from "./firebase";
 import { api } from "@/lib/api";
+import { clearStoredToken, setStoredToken } from "@/lib/token";
 
 export type RegisterPayload = {
   name: string;
   email: string;
   password: string;
+};
+
+type LoginResponse = {
+  mensagem?: string;
+  message?: string;
+  usuario?: unknown;
+  idToken?: string;
 };
 
 const mapAuthError = (err: unknown, fallback: string): Error => {
@@ -56,6 +64,10 @@ const mapAuthError = (err: unknown, fallback: string): Error => {
   return new Error(fallback);
 };
 
+const persistLoginToken = (backendToken: string | undefined, fallback: string) => {
+  setStoredToken(backendToken ?? fallback);
+};
+
 export async function registerWithEmail({
   name,
   email,
@@ -75,7 +87,8 @@ export async function registerWithEmail({
     await sendEmailVerification(userCredential.user);
 
     const idToken = await userCredential.user.getIdToken();
-    await api.post("/auth/login", { idToken });
+    const response = await api.post<LoginResponse>("/auth/login", { idToken });
+    persistLoginToken(response?.idToken, idToken);
 
     return userCredential.user;
   } catch (err) {
@@ -88,7 +101,8 @@ export async function registerWithGoogle() {
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
     const idToken = await userCredential.user.getIdToken();
-    await api.post("/auth/login", { idToken });
+    const response = await api.post<LoginResponse>("/auth/login", { idToken });
+    persistLoginToken(response?.idToken, idToken);
     return userCredential.user;
   } catch (err) {
     throw mapAuthError(err, "Erro ao criar conta com Google.");
@@ -111,7 +125,8 @@ export async function loginWithEmail(email: string, password: string) {
     }
 
     const idToken = await userCredential.user.getIdToken();
-    await api.post("/auth/login", { idToken });
+    const response = await api.post<LoginResponse>("/auth/login", { idToken });
+    persistLoginToken(response?.idToken, idToken);
 
     return userCredential.user;
   } catch (err) {
@@ -124,7 +139,8 @@ export async function loginWithGoogle() {
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
     const idToken = await userCredential.user.getIdToken();
-    await api.post("/auth/login", { idToken });
+    const response = await api.post<LoginResponse>("/auth/login", { idToken });
+    persistLoginToken(response?.idToken, idToken);
     return userCredential.user;
   } catch (err) {
     throw mapAuthError(err, "Erro ao iniciar sessao com Google.");
@@ -165,9 +181,5 @@ export async function applyEmailVerification(code: string) {
 
 export async function logoutAll() {
   await signOut(auth);
-  try {
-    await api.post("/auth/logout");
-  } catch {
-    // Ignore backend logout errors to avoid blocking local sign-out.
-  }
+  clearStoredToken();
 }
